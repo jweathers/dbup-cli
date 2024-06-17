@@ -1,5 +1,7 @@
 ﻿using System.CommandLine;
+using DbUp;
 using DbUp.Builder;
+using DbUp.Engine;
 using DbUp.ScriptProviders;
 using Microsoft.VisualBasic;
 
@@ -29,17 +31,19 @@ class Program
         rootCommand.AddCommand(upgradeCommand);
         rootCommand.Invoke(args);
     }
-    static Task HandleUpgrade(string ConnectionString,FileInfo configFile)
+
+    static Task HandleUpgrade(string connectionString,FileInfo configFile)
     {
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(connectionString);
+        ArgumentNullException.ThrowIfNull(configFile);
         var config = Configuration.CreateFromFile(configFile);
-        if(!config.Provider.TryValidateConnectionString(ConnectionString)) throw new Exception($"Invalid connection string for provider {config.Provider}");
-
-        var upgrader = new DbUp.Builder.UpgradeEngineBuilder();
-        var fileScriptOptions = new FileSystemScriptOptions();
         
-        var scriptProvider = new FileSystemScriptProvider(config.Scripts.First().Folder)
-
+        var upgrader = config.CreateBuilder(connectionString);
+        upgrader.Build().PerformUpgrade();
+        return Task.CompletedTask;
     }
+
+
 
     static Configuration LoadConfig(FileInfo configFile)
     {
